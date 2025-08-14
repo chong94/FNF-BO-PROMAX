@@ -1,0 +1,23 @@
+.dashboard-container {
+  padding: 24px;
+}
+
+.dashboard-title {
+  margin-bottom: 24px;
+}
+
+.dashboard-button-row {
+  margin-bottom: 24px;
+}
+
+.dashboard-progress-row {
+  margin-bottom: 24px;
+}
+
+.dashboard-summary {
+  margin-bottom: 24px;
+}
+
+.dashboard-summary-title {
+  margin-bottom: 16px;
+}
