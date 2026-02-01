@@ -4,6 +4,7 @@ interface AuthState {
   isLogin: boolean;
 }
 
+// Initialize state from storage only once at startup
 const initialState: AuthState = {
   isLogin: localStorage.getItem("isLogin") === "true",
 };
@@ -14,11 +15,10 @@ const authSlice = createSlice({
   reducers: {
     login(state) {
       state.isLogin = true;
-      localStorage.setItem("isLogin", "true"); // Save to storage
     },
     logout(state) {
       state.isLogin = false;
-      localStorage.setItem("isLogin", "false"); // Remove from storage
+      localStorage.removeItem("isLogin");
     },
   },
 });

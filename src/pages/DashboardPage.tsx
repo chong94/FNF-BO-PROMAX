@@ -158,6 +158,12 @@ function DashboardPage() {
       render: (cash: number) =>
         typeof cash === "number" ? cash.toFixed(2) : "0.00",
     },
+    {
+      title: "Total Deposit",
+      dataIndex: "totalD",
+      key: "totalD",
+      sorter: (a: any, b: any) => a.totalD - b.totalD,
+    },
     { title: "vID", dataIndex: "vId", key: "vId" },
   ];
 

@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// Define types
 export interface AgentData {
   id: string;
   name: string;
@@ -15,11 +14,14 @@ export interface PlayerData {
   vId?: string;
 }
 
-// Recursive fetch for ALL agents (tree structure) with Promise.all
 export async function getAgentList(
   onProgressUpdate?: (count: number) => void
 ): Promise<AgentData[]> {
-  let allAgents: AgentData[] = [];
+  const allAgents: AgentData[] = [];
+
+  const STARTING_ID =
+    import.meta.env.VITE_STARTING_PARENT_ID ||
+    "NjRiMGMyZGFlZjY0ZjUyZDgzM2I0MTlj";
 
   const fetchAgentsByParent = async (parentId: string): Promise<void> => {
     try {
@@ -34,11 +36,7 @@ export async function getAgentList(
           ucreated: "",
           status: "",
         },
-        {
-          headers: {
-            "Content-Type": "application/json; charset=UTF-8",
-          },
-        }
+        { headers: { "Content-Type": "application/json; charset=UTF-8" } }
       );
 
       const tempData = response.data.data;
@@ -57,65 +55,46 @@ export async function getAgentList(
           };
         });
 
-        allAgents = allAgents.concat(cleanData);
+        allAgents.push(...cleanData);
+        if (onProgressUpdate) onProgressUpdate(allAgents.length);
 
-        if (onProgressUpdate) {
-          onProgressUpdate(allAgents.length);
+        for (const agent of cleanData) {
+          await fetchAgentsByParent(agent.id);
         }
-
-        await Promise.all(
-          cleanData.map((agent: AgentData) => fetchAgentsByParent(agent.id))
-        );
       }
     } catch (error) {
-      console.error("Error fetching agent under parent", parentId, error);
+      console.error(`Error fetching parent ${parentId}:`, error);
     }
   };
 
-  await fetchAgentsByParent("NjRiMGMyZGFlZjY0ZjUyZDgzM2I0MTlj"); // starting parentId
-
+  await fetchAgentsByParent(STARTING_ID);
   return allAgents;
 }
 
-// Fetch ALL players under all agents
 export async function getPlayerListFromAgents(
   agentList: AgentData[],
   onProgressUpdate?: (count: number) => void
 ): Promise<PlayerData[]> {
-  let allPlayers: PlayerData[] = [];
+  const allPlayers: PlayerData[] = [];
 
-  const fetchPlayersByAgentId = async (agentId: string) => {
+  const fetchWithConcurrencyLimit = async (agentId: string) => {
     let currentPage = 1;
     let hasMore = true;
 
     while (hasMore) {
       try {
-        const response = await axios.post(
-          "/list/member",
-          {
-            pageindex: currentPage,
-            rowperpage: 300,
-            parent: agentId,
-            username: "",
-            contact: "",
-            ucreated: "",
-            status: "",
-          },
-          {
-            headers: {
-              "Content-Type": "application/json; charset=UTF-8",
-            },
-          }
-        );
+        const response = await axios.post("/list/member", {
+          pageindex: currentPage,
+          rowperpage: 300,
+          parent: agentId,
+        });
 
         const tempData = response.data.data;
-
         if (tempData && tempData.length > 0) {
-          const cleanData: PlayerData[] = tempData.map((item: any) => {
+          const cleanData = tempData.map((item: any) => {
             const itemStr = item[1];
             const startIndex = itemStr.indexOf("gameid('") + 8;
             const endIndex = itemStr.indexOf("')", startIndex);
-
             return {
               id: item[0],
               name: itemStr.substring(0, startIndex - 8),
@@ -124,30 +103,23 @@ export async function getPlayerListFromAgents(
             };
           });
 
-          allPlayers = allPlayers.concat(cleanData);
+          allPlayers.push(...cleanData);
+          if (onProgressUpdate) onProgressUpdate(allPlayers.length);
 
-          if (onProgressUpdate) {
-            onProgressUpdate(allPlayers.length);
-          }
-
-          if (currentPage >= response.data.totalPage) {
-            hasMore = false;
-          } else {
-            currentPage++;
-          }
+          if (currentPage >= response.data.totalPage) hasMore = false;
+          else currentPage++;
         } else {
           hasMore = false;
         }
       } catch (error) {
-        console.error("Error fetching players under agent", agentId, error);
         hasMore = false;
       }
     }
   };
 
-  await Promise.all(
-    agentList.map((agent: AgentData) => fetchPlayersByAgentId(agent.id))
-  );
+  for (const agent of agentList) {
+    await fetchWithConcurrencyLimit(agent.id);
+  }
 
   return allPlayers;
 }

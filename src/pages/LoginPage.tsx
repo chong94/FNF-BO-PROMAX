@@ -1,15 +1,14 @@
 import { Form, Input, Button, Typography, notification } from "antd";
 import { useDispatch } from "react-redux";
-import { AppDispatch } from "../store";
 import { login } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../services/authService";
-import "./LoginPage.css"; // ✅ Import your CSS here
+import "./LoginPage.css";
 
 function LoginPage() {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [api, contextHolder] = notification.useNotification(); // ✅ Latest AntD v5 standard
+  const [api, contextHolder] = notification.useNotification();
 
   const onFinish = async (values: any) => {
     try {
@@ -19,64 +18,42 @@ function LoginPage() {
       });
 
       if (response.code === 1) {
+        localStorage.setItem("isLogin", "true");
         dispatch(login());
+
+        api.success({ message: "Welcome back!" });
         navigate("/dashboard");
-        api.success({
-          message: "Login Successful",
-          description: "Welcome back!",
-          placement: "topRight",
-        });
       } else {
-        api.error({
-          message: "Login Failed",
-          description: response.message || "Please check your credentials.",
-          placement: "topRight",
-        });
+        api.error({ message: response.message || "Invalid credentials" });
       }
     } catch (error) {
-      console.error("Network or server error", error);
       api.error({
         message: "Network Error",
-        description: "Unable to reach server. Please try again later.",
-        placement: "topRight",
+        description: "Server unreachable.",
       });
     }
   };
 
   return (
     <>
-      {contextHolder}{" "}
-      {/* 👈 Must render contextHolder for useNotification to work */}
+      {contextHolder}
       <div className="login-page">
         <div className="login-card">
-          <Typography.Title level={2} className="login-title">
-            Login
-          </Typography.Title>
-
-          <Form name="login" layout="vertical" onFinish={onFinish}>
-            <Form.Item
-              label="Email"
-              name="email"
-              rules={[{ required: true, message: "Please input your Email!" }]}
-            >
-              <Input placeholder="Email" />
+          <Typography.Title level={2}>Agent Backoffice</Typography.Title>
+          <Form layout="vertical" onFinish={onFinish}>
+            <Form.Item label="Email" name="email" rules={[{ required: true }]}>
+              <Input placeholder="Enter username" />
             </Form.Item>
-
             <Form.Item
               label="Password"
               name="password"
-              rules={[
-                { required: true, message: "Please input your Password!" },
-              ]}
+              rules={[{ required: true }]}
             >
-              <Input.Password placeholder="Password" />
+              <Input.Password placeholder="Enter password" />
             </Form.Item>
-
-            <Form.Item>
-              <Button type="primary" htmlType="submit" block>
-                Login
-              </Button>
-            </Form.Item>
+            <Button type="primary" htmlType="submit" block>
+              Login
+            </Button>
           </Form>
         </div>
       </div>
